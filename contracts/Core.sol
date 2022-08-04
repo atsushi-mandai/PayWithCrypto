@@ -24,14 +24,7 @@ contract Core is Ownable {
     /*
      * @dec Returns whether the payment is completed.
      */
-    struct Receipt {
-        string identifier;
-        address token;
-        uint256 amount;
-        uint256 timestamp;
-    }
-    Receipt[] public receipts;
-    uint256 public totalReceipts;
+    mapping(string => bool) public paymentStatus;
 
     /*
      * @dev Lets a user pay with crypto.
@@ -40,16 +33,16 @@ contract Core is Ownable {
         address _tokenContract,
         uint256 _amount,
         string memory _identifier
-    ) public {
+    ) public returns(bool) {
         require(
             tokenAcceptance[_tokenContract] == true,
             "This ERC20 token is not accepted."
         );
         IERC20 token = IERC20(_tokenContract);
         token.transferFrom(msg.sender, address(this), _amount);
-        receipts.push(Receipt(_identifier, _tokenContract, _amount, block.timestamp));
-        totalReceipts = totalReceipts + 1;
+        paymentStatus[_identifier] = true;
         emit PaymentComplete(_identifier);
+        return true;
     }
 
     /*
@@ -71,24 +64,6 @@ contract Core is Ownable {
         bool _acceptance
     ) public onlyOwner {
         tokenAcceptance[_tokenAddress] = _acceptance;
-    }
-
-    /*
-     * @dev Returns receipt.
-     */
-    function getReceipt(
-        string memory _identifier
-    ) public view returns(Receipt memory) {
-        Receipt memory result;
-        for(uint256 i = 0; i < totalReceipts; i++) { 
-            string memory identifier = receipts[i].identifier;
-            if(
-                keccak256(abi.encodePacked(_identifier)) == keccak256(abi.encodePacked(identifier))
-            ) {
-                result = receipts[i];
-            }
-        }
-        return result;
     }
 
 }
