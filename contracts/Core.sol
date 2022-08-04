@@ -24,7 +24,14 @@ contract Core is Ownable {
     /*
      * @dec Returns whether the payment is completed.
      */
-    mapping(string => bool) public paymentStatus;
+    struct Receipt {
+        string identifier;
+        address token;
+        uint256 amount;
+        uint256 timestamp;
+    }
+    Receipt[] public receipts;
+    uint256 public totalReceipts;
 
     /*
      * @dev Lets a user pay with crypto.
@@ -40,7 +47,8 @@ contract Core is Ownable {
         );
         IERC20 token = IERC20(_tokenContract);
         token.transferFrom(msg.sender, address(this), _amount);
-        paymentStatus[_identifier] = true;
+        receipts.push(Receipt(_identifier, _tokenContract, _amount, block.timestamp));
+        totalReceipts = totalReceipts + 1;
         emit PaymentComplete(_identifier);
     }
 
@@ -63,6 +71,24 @@ contract Core is Ownable {
         bool _acceptance
     ) public onlyOwner {
         tokenAcceptance[_tokenAddress] = _acceptance;
+    }
+
+    /*
+     * @dev Returns receipt.
+     */
+    function getReceipt(
+        string memory _identifier
+    ) public view returns(Receipt memory) {
+        Receipt memory result;
+        for(uint256 i = 0; i < totalReceipts; i++) { 
+            string memory identifier = receipts[i].identifier;
+            if(
+                keccak256(abi.encodePacked(_identifier)) == keccak256(abi.encodePacked(identifier))
+            ) {
+                result = receipts[i];
+            }
+        }
+        return result;
     }
 
 }
